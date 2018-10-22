@@ -1,4 +1,5 @@
 import os
+import json
 import torch
 import torch.nn as nn
 
@@ -76,6 +77,26 @@ def validate(model, loader, device,
     return None if metric is None else val_metric
 
 
+def save_checkpoint(save_folder, model, epoch, n_epochs, log_interval, score, best_score):
+    torch.save(model.state_dict(), os.path.join(save_folder, 'weights.torch'))
+    if score is not None and score > best_score:
+        best_score = score
+        torch.save(model.state_dict(), os.path.join(save_folder, 'best_weigths.torch'))
+    metadata = {'epoch': epoch, 'n_epochs': n_epochs, 'log_interval': log_interval,
+                'score': score, 'best_score': score}
+    with open(os.path.join(save_folder, 'checkpoint.json'), 'w') as f:
+        json.dump(metadata, f)
+
+
+def load_checkpoint(model, save_folder, load_best=False):
+    state_path = os.path.join(save_folder, 'best_weights.torch' if load_best else 'weights.torch')
+    assert os.path.exists(state_path), state_path
+    model.load_state_dict(state_path)
+    with open(os.path.join(save_folder, 'checkpoint.json')) as f:
+        config = json.load(f)
+    return model, config
+
+
 def main(model, device,
          train_loader, val_loader,
          loss_function, optimizer,
@@ -83,13 +104,24 @@ def main(model, device,
          **config):
     """
     """
-    # read config:
+
+    # read general config
     # number of epoches
     n_epochs = config.pop('n_epochs', 25)
     # logging interval during training
     log_interval = config.pop('log_interval', 100)
     # save folder for models and checkpoints
     save_folder = config.pop('save_folder', '.')
+    os.makedirs(save_folder, exist_ok=True)
+
+    # check if we are loading a checkpoint
+    # in that case we have additional config values:
+    # - epoch: epoch of the checkpoint
+    # - score: current validation score
+    # - best_score: best validation score
+    epoch = config.pop('epoch', 0)
+    score = config.pop('score', 0)
+    best_score = config.pop('best_score', 0)
 
     # TODO use logging instead
     if config:
@@ -103,21 +135,17 @@ def main(model, device,
     if val_metric is not None and isinstance(val_metric, nn.Module):
         val_metric.to(device)
 
-    best_score = 0
     steps_per_epoch = len(train_loader)
-    for epoch in range(n_epochs):
+    for epoch in range(epoch, n_epochs):
         train(model, train_loader, device,
               optimizer, loss_function,
               epoch, log_interval=log_interval,
               tb_logger=tb_logger)
         step = n_epochs * steps_per_epoch
-        metric_value = validate(model, val_loader, device,
-                                loss_function, step,
-                                metric=val_metric, tb_logger=tb_logger)
+        score = validate(model, val_loader, device,
+                         loss_function, step,
+                         metric=val_metric, tb_logger=tb_logger)
         # TODO implement lr decay based on val score
-        # TODO implement proper checkpoiting and save val score and step and ...
-        torch.save(model, os.path.join(save_folder, 'model.torch'))
-        if metric_value is not None and metric_value > best_score:
-            best_score = metric_value
-            torch.save(model, os.path.join(save_folder, 'best_model.torch'))
+        save_checkpoint(save_folder, model, epoch, n_epochs,
+                        log_interval, score, best_score)
     return model

@@ -30,7 +30,8 @@ def pretrain_isbi(device, data_set, num_workers=0):
     main(net, device, train_loader, val_loader,
          loss_function=loss, optimizer=optimizer,
          val_metric=metric, tb_logger=tb,
-         n_epochs=50, log_interval=1)
+         n_epochs=50, log_interval=1,
+         save_folder='./checkpoints')
 
 
 if __name__ == '__main__':
