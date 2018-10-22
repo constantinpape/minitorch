@@ -58,7 +58,7 @@ def checkpoint_to_tiktorch(model, model_kwargs,
               'torch_version': torch.__version__}
 
     # serialize config
-    config_file = os.path.join(checkpoint_folder, 'tiktorch_config.yaml')
+    config_file = os.path.join(checkpoint_folder, 'tiktorch_config.yml')
     with open(config_file, 'w') as f:
         yaml.dump(config, f)
 
