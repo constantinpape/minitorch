@@ -38,7 +38,7 @@ def train(model, loader, device,
         if tb_logger is not None:
             step = epoch * len(loader) + batch_id
             # call log train
-            tb_logger.log_defaults(step, loss, x, y, prediction,
+            tb_logger.log_defaults(step, loss.item(), x, y, prediction,
                                    prefix='train')
 
 
@@ -84,7 +84,7 @@ def save_checkpoint(save_folder, model, epoch, n_epochs, log_interval, score, be
     torch.save(model.state_dict(), os.path.join(save_folder, 'weights.torch'))
     if score is not None and score > best_score:
         best_score = score
-        torch.save(model.state_dict(), os.path.join(save_folder, 'best_weigths.torch'))
+        torch.save(model.state_dict(), os.path.join(save_folder, 'best_weights.torch'))
     metadata = {'epoch': epoch, 'n_epochs': n_epochs, 'log_interval': log_interval,
                 'score': score, 'best_score': score}
     with open(os.path.join(save_folder, 'checkpoint.json'), 'w') as f:
@@ -144,7 +144,7 @@ def main(model, device,
               optimizer, loss_function,
               epoch, log_interval=log_interval,
               tb_logger=tb_logger)
-        step = n_epochs * steps_per_epoch
+        step = epoch * steps_per_epoch
         score = validate(model, val_loader, device,
                          loss_function, step,
                          metric=val_metric, tb_logger=tb_logger)

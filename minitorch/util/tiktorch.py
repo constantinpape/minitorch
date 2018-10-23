@@ -21,7 +21,7 @@ def checkpoint_to_tiktorch(model, model_kwargs,
                            checkpoint_folder, output_folder,
                            input_shape, minimal_increment,
                            load_best=True, description=None,
-                           data_source=None):
+                           data_source=None, device='cpu'):
     """ Save checkpoint in tiktorch format:
     TODO link
 
@@ -36,7 +36,7 @@ def checkpoint_to_tiktorch(model, model_kwargs,
         description:
         data_source:
     """
-    os.makedirs(output_folder, exists_ok=True)
+    os.makedirs(output_folder, exist_ok=True)
 
     # get the path to code and class name
     code_path = inspect.getfile(model)
@@ -48,10 +48,15 @@ def checkpoint_to_tiktorch(model, model_kwargs,
                                'best_weights.torch' if load_best else 'weights.torch')
     assert os.path.exists(weight_path), weight_path
     model.load_state_dict(torch.load(weight_path))
+    model.to(device)
 
-    input_ = torch.zeros(*input_shape, dtype=torch.float32)
+    # tiktorch specification is without batch dim, so we need to add it
+    batch_shape = (1,) + input_shape
+
+    input_ = torch.zeros(*batch_shape, dtype=torch.float32, device=device)
     out = model(input_)
-    output_shape = tuple(out.shape)
+    # get ride of batch axis for tiktorch spec
+    output_shape = tuple(out.shape)[1:]
 
     # build the config
     config = {'input_shape': input_shape,
@@ -68,7 +73,7 @@ def checkpoint_to_tiktorch(model, model_kwargs,
         config['data_source'] = data_source
 
     # serialize config
-    config_file = os.path.join(checkpoint_folder, 'tiktorch_config.yml')
+    config_file = os.path.join(output_folder, 'tiktorch_config.yml')
     with open(config_file, 'w') as f:
         yaml.dump(config, f)
 

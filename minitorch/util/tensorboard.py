@@ -9,7 +9,7 @@ class TensorBoard(object):
 
     To modify the logging behaviour, overload `log_train` and `log_val`.
     """
-    def __init__(self, log_dir, log_image_interval=20):
+    def __init__(self, log_dir, log_image_interval=100):
         self.log_dir = log_dir
         # we don't wan't to log images every iteration,
         # which is expensive, so we can specify `log_image_interval`
@@ -48,14 +48,12 @@ class TensorBoard(object):
                 ctag = tag + '/channel%i' % c
                 self.log_single_image(ctag, im, step)
 
-
     def log_defaults(self, step, loss, x, y, prediction, prefix,
                      flush_images=False):
-        self.log_scalar(tag='train-loss', value=loss.item(),
-                             step=step)
+        self.log_scalar(tag='%s-loss' % prefix, value=loss, step=step)
         # check if we log images in this iteration
         log_image_interval = self.log_image_interval
-        if step % log_image_interval == 0 and not flush_images:
+        if step % log_image_interval == 0 or flush_images:
             pshape = prediction.shape
             self.log_image(tag='%s-input' % prefix,
                            image=crop_tensor(x, pshape), step=step)
@@ -63,14 +61,3 @@ class TensorBoard(object):
                            image=crop_tensor(y, pshape), step=step)
             self.log_image(tag='%s-prediction' % prefix,
                            image=prediction.detach(), step=step)
-
-    def log_val(self, step, loss, x, y, prediction, metric=None):
-        self.log_scalar(tag='val-loss', value=loss, step=step)
-        # we always log the last validation images
-        pshape = prediction.shape
-        self.log_image(tag='val-input',
-                       image=crop_tensor(x, pshape), step=step)
-        self.log_image(tag='val-target',
-                       image=crop_tensor(y, pshape), step=step)
-        self.log_image(tag='val-prediction',
-                       image=prediction, step=step)

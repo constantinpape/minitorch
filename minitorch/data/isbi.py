@@ -36,7 +36,7 @@ class Isbi2012(DataseWithTransform):
         return target[:, None]
 
     def __init__(self, root, train=True, transform=None):
-        assert os.path.exists(root)
+        assert os.path.exists(root), root
 
         slice_ = slice(0, self.split_slice) if train else slice(self.split_slice, 30)
 
