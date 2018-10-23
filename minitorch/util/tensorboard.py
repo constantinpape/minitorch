@@ -49,24 +49,23 @@ class TensorBoard(object):
                 self.log_single_image(ctag, im, step)
 
 
-    def log_train(self, step, loss, x, y, prediction):
+    def log_defaults(self, step, loss, x, y, prediction, prefix,
+                     flush_images=False):
         self.log_scalar(tag='train-loss', value=loss.item(),
                              step=step)
         # check if we log images in this iteration
         log_image_interval = self.log_image_interval
-        if step % log_image_interval == 0:
+        if step % log_image_interval == 0 and not flush_images:
             pshape = prediction.shape
-            self.log_image(tag='train-input',
+            self.log_image(tag='%s-input' % prefix,
                            image=crop_tensor(x, pshape), step=step)
-            self.log_image(tag='train-target',
+            self.log_image(tag='%s-target' % prefix,
                            image=crop_tensor(y, pshape), step=step)
-            self.log_image(tag='train-prediction',
+            self.log_image(tag='%s-prediction' % prefix,
                            image=prediction.detach(), step=step)
 
     def log_val(self, step, loss, x, y, prediction, metric=None):
         self.log_scalar(tag='val-loss', value=loss, step=step)
-        if metric is not None:
-            self.log_scalar(tag='val-metric', value=metric, step=step)
         # we always log the last validation images
         pshape = prediction.shape
         self.log_image(tag='val-input',

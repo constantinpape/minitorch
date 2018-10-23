@@ -38,7 +38,8 @@ def train(model, loader, device,
         if tb_logger is not None:
             step = epoch * len(loader) + batch_id
             # call log train
-            tb_logger.log_train(step, loss, x, y, prediction)
+            tb_logger.log_defaults(step, loss, x, y, prediction,
+                                   prefix='train')
 
 
 # run validation after training epoch
@@ -68,8 +69,10 @@ def validate(model, loader, device,
         val_metric /= len(loader.dataset)
 
     if tb_logger is not None:
-        tb_logger.log_val(step, val_loss, x, y, prediction,
-                          metric=None if metric is None else val_metric)
+        tb_logger.log_defaults(step, val_loss, x, y, prediction,
+                               prefix='val', flush_images=True)
+        if metric is not None:
+            tb_logger.log_scalar(tag='val-metric', value=val_metric, step=step)
 
     # TODO use logging instead
     print('\nValidate: Average loss: {:.4f}, Average Metric: {:.4f}\n'.format(val_loss,

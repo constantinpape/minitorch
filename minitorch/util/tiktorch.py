@@ -7,6 +7,7 @@ import torch
 
 
 def _to_dynamic_shape(minimal_increment):
+    assert isinstance(minimal_increment, tuple)
     if len(minimal_increment) == 2:
         dynamic_shape = '(%i * (nH + 1), %i * (nW + 1))' % minimal_increment
     elif len(minimal_increment) == 3:
@@ -19,7 +20,8 @@ def _to_dynamic_shape(minimal_increment):
 def checkpoint_to_tiktorch(model, model_kwargs,
                            checkpoint_folder, output_folder,
                            input_shape, minimal_increment,
-                           load_best=True):
+                           load_best=True, description=None,
+                           data_source=None):
     """ Save checkpoint in tiktorch format:
     TODO link
 
@@ -31,6 +33,8 @@ def checkpoint_to_tiktorch(model, model_kwargs,
         input_shape:
         minimal_increment:
         load_best:
+        description:
+        data_source:
     """
     os.makedirs(output_folder, exists_ok=True)
 
@@ -45,7 +49,7 @@ def checkpoint_to_tiktorch(model, model_kwargs,
     assert os.path.exists(weight_path), weight_path
     model.load_state_dict(torch.load(weight_path))
 
-    input_ = torch.zeros(*input_shape, dtype=torch.float())
+    input_ = torch.zeros(*input_shape, dtype=torch.float32)
     out = model(input_)
     output_shape = tuple(out.shape)
 
@@ -56,6 +60,12 @@ def checkpoint_to_tiktorch(model, model_kwargs,
               'model_class_name': cls_name,
               'model_init_kwargs': model_kwargs,
               'torch_version': torch.__version__}
+    if description is not None:
+        assert isinstance(description, str)
+        config['description'] = description
+    if data_source is not None:
+        assert isinstance(data_source, str)
+        config['data_source'] = data_source
 
     # serialize config
     config_file = os.path.join(checkpoint_folder, 'tiktorch_config.yml')
